@@ -9,6 +9,7 @@ Flask renders a chart and table data of measurements
 https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
 
 https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/windows.md
+
 https://github.com/espressif/arduino-esp32
 ```
 
