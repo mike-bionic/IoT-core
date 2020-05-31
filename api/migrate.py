@@ -36,7 +36,7 @@ class User(db.Model, UserMixin):
 db.drop_all()
 db.create_all()
 
-device = Devices(device_name="Water meter")
+device = Devices(device_name="waterMeter",apiKey="fw3445g46423527hef2")
 db.session.commit()
 
 admin = User(username="admin",password="admin123",full_name="Administrator")

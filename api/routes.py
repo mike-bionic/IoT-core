@@ -38,7 +38,7 @@ def devices_manage(id):
 	print ('Got the request')
 	return (id)
 
-@app.route("/devices/")
+@app.route("/")
 def devices():
 	print("We're connected")
 	return ("ok!")
