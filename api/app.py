@@ -1,4 +1,4 @@
-from flask import Flask,render_template,url_for,flash,redirect,request,Response,abort
+from flask import Flask,render_template,url_for,redirect,jsonify
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -40,6 +40,17 @@ def devices_manage(id):
 	print ('Got the request')
 	return (id)
 
+@app.route("/measurement/<key>/<int:val>")
+def measurement(key,val):
+	try:
+		device = Devices.query.filter_by(apiKey=key).first()
+		measurement = Measurements(value=val,deviceId=device.id)
+		db.session.add(measurement)
+		db.session.commit()
+		return jsonify({"response":"OK"})
+	except:
+		return jsonify({"response":"error"})
+
 
 monthlyFreeWaterAmount = 950
 monthlyTresholdAmount = 4000
@@ -49,7 +60,32 @@ monthlyTresholdAmount = 4000
 @app.route("/main")
 def home():
 	device = Devices.query.get(1)
-	measurements = Measurements.query.filter_by(deviceId=device.id)
+	dailyMeasured = []
+	measurements = Measurements.query.filter_by(deviceId=device.id).all()
+	
+# there's an error here, will check it later
+
+	# for measurement in measurements:
+	# 	print(measurement.date)
+	# 	if len(dailyMeasured)==0:
+	# 		dailyMeasured.append(measurement)
+	# 	else:
+	# 		for days in dailyMeasured:
+	# 			if (days.date.strftime("%d") != measurement.date.strftime("%d")):
+	# 				dailyMeasured.append(measurement)
+	# 				print(measurement.value)
+	# 				print("appended")
+	# 			elif (days.date.strftime("%d") == measurement.date.strftime("%d")):
+	# 				print(days.value)
+	# 				print(measurement.value)
+	# 				days.value=int(days.value)+int(measurement.value)
+	# 				print("value Up")
+
+	# print("_________________-")
+	# print(dailyMeasured)
+	# for days in dailyMeasured:
+	# 	print(days.value)
+####################
 
 	commonUsedAmount=0
 	pastMeasurement=0
