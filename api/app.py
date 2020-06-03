@@ -1,4 +1,4 @@
-from flask import Flask,render_template,url_for,redirect,jsonify
+from flask import Flask,render_template,url_for,redirect,jsonify,request
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -24,6 +24,8 @@ class Devices(db.Model):
 	device_name = db.Column(db.String(100),nullable=False)
 	measurements = db.relationship('Measurements',backref='devices',lazy=True)
 	apiKey = db.Column(db.String(500))
+	monthlyFreeWaterAmount = db.Column(db.Integer)
+	monthlyTresholdAmount = db.Column(db.Integer)
 
 class Measurements(db.Model):
 	id = db.Column(db.Integer,primary_key=True)
@@ -51,12 +53,8 @@ def measurement(key,val):
 	except:
 		return jsonify({"response":"error"})
 
-
-monthlyFreeWaterAmount = 950
-monthlyTresholdAmount = 4000
-
 @app.route("/")
-@app.route("/home")
+@app.route("/chart")
 @app.route("/main")
 def home():
 	device = Devices.query.get(1)
@@ -89,12 +87,12 @@ def home():
 
 	commonUsedAmount=0
 	pastMeasurement=0
+	monthlyFreeWaterAmount = device.monthlyFreeWaterAmount
+	monthlyTresholdAmount = device.monthlyTresholdAmount
 	for measurement in measurements:
 		commonUsedAmount += int(measurement.value)-pastMeasurement
 		# pastMeasurement = int(measurement.value)
 
-	global monthlyFreeWaterAmount
-	global monthlyTresholdAmount
 
 	# calculates current amount of free if not expired
 
@@ -123,6 +121,32 @@ def home():
 #############################
 
 
+
+@app.route("/settings",methods=['GET','POST'])
+# @login_required
+def settings():
+	user = User.query.get(1)
+	device = Devices.query.get(1)
+	if request.method == 'POST':
+		monthlyFreeWaterAmount=request.form.get("monthlyFreeWaterAmount")
+		monthlyTresholdAmount=request.form.get("monthlyTresholdAmount")
+		try:
+			device.monthlyFreeWaterAmount=monthlyFreeWaterAmount
+			device.monthlyTresholdAmount=monthlyTresholdAmount
+			db.session.commit()
+		except:
+			print('error')
+	return render_template("settings.html",user=user,device=device)
+
+@app.route("/card_register",methods=['POST'])
+def card_register():
+	user = User.query.get(1)
+	personalTag = request.form.get('personalTag')
+	print(personalTag)
+	user.personalTag = personalTag
+	db.session.commit()
+	return redirect("/")
+
 # #### auth and login routes ####
 from flask_login import UserMixin
 
@@ -135,9 +159,10 @@ class User(db.Model, UserMixin):
 	username = db.Column(db.String(50),unique=True,nullable =False)
 	full_name = db.Column(db.String(100))
 	password = db.Column(db.String(100), nullable=False)
+	personalTag = db.Column(db.String(120))
+	lastTagRegTime = db.Column(db.DateTime,nullable=False,default=datetime.now()) 
 	def __repr__ (self):
 		return f"User('{self.username}')"
-
 
 if __name__ == "__main__":
 	app.run(host="0.0.0.0" , port=5100 , debug=True)

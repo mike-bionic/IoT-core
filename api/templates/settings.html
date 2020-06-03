@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+  <div class="col-md-12 col-sm-12 ">
+  	<h2>Suwuň ulanyşyň esasy nokatlary guruň</h2>
+  	<form method="POST" action="/settings">
+  		<div class="form-group col">
+	  		<label>Aýdaky mugt mohleti</label>
+		  	<input type="text" class="form-control" name="monthlyFreeWaterAmount" value="{{device.monthlyFreeWaterAmount}}">
+		  	<br>
+		  	<label>Aýdaky umumy mohleti</label>
+		  	<input type="text" class="form-control" name="monthlyTresholdAmount" value="{{device.monthlyTresholdAmount}}">
+		  	<button type="submit" class="btn btn-outline-info">Ýatla</button>
+	  	</div>
+	  </form>
+	  <h2>Soňky tölegi: </h2><span><h3>{{user.lastTagRegTime.strftime("%H:%M %d/%m/%Y")}}</h3>
+
+  	<h2>Töleg karty gurnaň:</h2>
+  	<form method="POST" action="/card_register">
+  		<div class="form-group col">
+	  		<input type="text" class="form-control" name="personalTag" placeholder="Kart kody">
+	  		<button type="submit" class="btn btn-warning">Ýatla</button>
+  		</div>
+  	</form>
+  </div>
+
+ {% endblock %}

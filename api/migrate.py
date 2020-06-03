@@ -15,6 +15,8 @@ class Devices(db.Model):
 	device_name = db.Column(db.String(100),nullable=False)
 	measurements = db.relationship('Measurements',backref='devices',lazy=True)
 	apiKey = db.Column(db.String(500))
+	monthlyFreeWaterAmount = db.Column(db.Integer,nullable=False,default=500)
+	monthlyTresholdAmount = db.Column(db.Integer,nullable=False,default=3000)
 
 class Measurements(db.Model):
 	id = db.Column(db.Integer,primary_key=True)
@@ -32,6 +34,8 @@ class User(db.Model, UserMixin):
 	username = db.Column(db.String(50),unique=True,nullable =False)
 	full_name = db.Column(db.String(100))
 	password = db.Column(db.String(100), nullable=False)
+	personalTag = db.Column(db.String(120))
+	lastTagRegTime = db.Column(db.DateTime,nullable=False,default=datetime.now()) 
 	def __repr__ (self):
 		return f"User('{self.username}')"
 
@@ -42,7 +46,8 @@ db.create_all()
 device = Devices(device_name="waterMeter",apiKey="fw3445g46423527hef2")
 db.session.add(device)
 
-admin = User(username="admin",password="admin123",full_name="Administrator")
+admin = User(username="admin",password="admin123",full_name="Administrator",
+	personalTag="C7 95 E1 52")
 db.session.add(admin)
 
 measurement = Measurements(value=122,date=datetime(2020,6,1,2,0,0,0),deviceId=1)
