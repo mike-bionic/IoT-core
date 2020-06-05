@@ -14,7 +14,10 @@ class Devices(db.Model):
 	id = db.Column(db.Integer,primary_key=True)
 	device_name = db.Column(db.String(100),nullable=False)
 	measurements = db.relationship('Measurements',backref='devices',lazy=True)
+	user = db.relationship('User',backref='devices',lazy=True)
 	apiKey = db.Column(db.String(500))
+	paid = db.Column(db.Boolean,nullable=False,default=False)
+	fullAmount = db.Column(db.Integer)
 	monthlyFreeWaterAmount = db.Column(db.Integer,nullable=False,default=500)
 	monthlyTresholdAmount = db.Column(db.Integer,nullable=False,default=3000)
 
@@ -23,7 +26,7 @@ class Measurements(db.Model):
 	value = db.Column(db.String(100),nullable=False)
 	date = db.Column(db.DateTime,nullable=False,default=datetime.now())
 	deviceId = db.Column(db.Integer,db.ForeignKey("devices.id"))
-
+	
 ###  end of Devices models ###
 
 # #### auth and login routes ####
@@ -35,7 +38,8 @@ class User(db.Model, UserMixin):
 	full_name = db.Column(db.String(100))
 	password = db.Column(db.String(100), nullable=False)
 	personalTag = db.Column(db.String(120))
-	lastTagRegTime = db.Column(db.DateTime,nullable=False,default=datetime.now()) 
+	lastTagRegTime = db.Column(db.DateTime)
+	deviceId = db.Column(db.Integer,db.ForeignKey("devices.id"))
 	def __repr__ (self):
 		return f"User('{self.username}')"
 
@@ -47,7 +51,7 @@ device = Devices(device_name="waterMeter",apiKey="fw3445g46423527hef2")
 db.session.add(device)
 
 admin = User(username="admin",password="admin123",full_name="Administrator",
-	personalTag="C7 95 E1 52")
+	personalTag="C7 95 E1 52",deviceId=1)
 db.session.add(admin)
 
 measurement = Measurements(value=122,date=datetime(2020,6,1,2,0,0,0),deviceId=1)

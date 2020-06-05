@@ -23,9 +23,12 @@ class Devices(db.Model):
 	id = db.Column(db.Integer,primary_key=True)
 	device_name = db.Column(db.String(100),nullable=False)
 	measurements = db.relationship('Measurements',backref='devices',lazy=True)
+	user = db.relationship('User',backref='devices',lazy=True)
 	apiKey = db.Column(db.String(500))
-	monthlyFreeWaterAmount = db.Column(db.Integer)
-	monthlyTresholdAmount = db.Column(db.Integer)
+	paid = db.Column(db.Boolean,nullable=False,default=False)
+	fullAmount = db.Column(db.Integer)
+	monthlyFreeWaterAmount = db.Column(db.Integer,nullable=False,default=500)
+	monthlyTresholdAmount = db.Column(db.Integer,nullable=False,default=3000)
 
 class Measurements(db.Model):
 	id = db.Column(db.Integer,primary_key=True)
@@ -33,14 +36,7 @@ class Measurements(db.Model):
 	date = db.Column(db.DateTime,nullable=False,default=datetime.now())
 	deviceId = db.Column(db.Integer,db.ForeignKey("devices.id"))
 
-
 ###  end of Devices models ###
-
-#### interactive pages of view ####
-@app.route("/devices/<int:id>",methods=['GET','POST'])
-def devices_manage(id):
-	print ('Got the request')
-	return (id)
 
 @app.route("/measurement/<key>/<int:val>")
 def measurement(key,val):
@@ -48,8 +44,17 @@ def measurement(key,val):
 		device = Devices.query.filter_by(apiKey=key).first()
 		measurement = Measurements(value=val,deviceId=device.id)
 		db.session.add(measurement)
+		device.fullAmount += measurement.value
 		db.session.commit()
-		return jsonify({"response":"OK"})
+
+		if(device.fullAmount>device.monthlyTresholdAmount):
+			permission = "deny"
+		else:
+			permission = "accept"
+		return jsonify({
+			"response":"OK",
+			"permission":permission
+			})
 	except:
 		return jsonify({"response":"error"})
 
@@ -144,8 +149,34 @@ def card_register():
 	personalTag = request.form.get('personalTag')
 	print(personalTag)
 	user.personalTag = personalTag
+	user.lastTagRegTime = datetime.now()
 	db.session.commit()
 	return redirect("/")
+
+
+@app.route("/card/pay/<cardId>")
+def card_pay(cardId):
+	try:
+		user = User.query.filter_by(personalTag=cardId).first()
+		print(user.username)
+		device = Devices.query.filter_by(id=user.deviceId).first()
+		device.fullAmount = 0
+		user.lastTagRegTime=(datetime.now())
+		# measurement = Measurements(value=0,deviceId=device.id,paid=True)
+		# db.session.add(measurement)
+		db.session.commit()
+		if(device.fullAmount>device.monthlyTresholdAmount):
+			permission = "deny"
+		else:
+			permission = "accept"
+		return jsonify({
+			"response":"OK",
+			"permission":permission
+			})
+	except:
+		return jsonify({
+			"response":"Wrong card Id"
+			})
 
 # #### auth and login routes ####
 from flask_login import UserMixin
@@ -160,7 +191,8 @@ class User(db.Model, UserMixin):
 	full_name = db.Column(db.String(100))
 	password = db.Column(db.String(100), nullable=False)
 	personalTag = db.Column(db.String(120))
-	lastTagRegTime = db.Column(db.DateTime,nullable=False,default=datetime.now()) 
+	lastTagRegTime = db.Column(db.DateTime)
+	deviceId = db.Column(db.Integer,db.ForeignKey("devices.id")) 
 	def __repr__ (self):
 		return f"User('{self.username}')"
 
