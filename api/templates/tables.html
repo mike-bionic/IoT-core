@@ -1,0 +1,40 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="table-responsive">
+	<table class="table table-bordered table-striped table-hover js-basic-example dataTable">
+		<thead>
+			<tr>
+				<th>T/b</th>
+				<th>Device</th>
+				<th>Value</th>
+				<th>Date</th>
+			</tr>
+		</thead>
+		<tfoot>
+			<tr>
+				<th>T/b</th>
+				<th>Device</th>
+				<th>Value</th>
+				<th>Date</th>
+			</tr>
+		</tfoot>
+		<tbody>
+			{% for measurement in measurements %}
+				<tr>
+					<td>{{measurement.id}}</td>
+					<td>{{device.deice_name}}</td>
+					<td>{{measurement.value}}</td>
+					<td>{{measurement.date.strftime("%H:%M %d.%m.%Y") if measurement.date else ''}}</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="/static/js/buttons.bootstrap4.min.js"></script>
+<script src="/static/js/dataTables.buttons.min.js"></script>
+<script src="/static/js/datatablescripts.bundle.js"></script>
+{% endblock %}

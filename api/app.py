@@ -47,7 +47,7 @@ def measurement(key,val):
 		device.fullAmount += measurement.value
 		db.session.commit()
 
-		if(device.fullAmount>device.monthlyTresholdAmount):
+		if(device.fullAmount>=device.monthlyTresholdAmount):
 			permission = "deny"
 		else:
 			permission = "accept"
@@ -165,7 +165,7 @@ def card_pay(cardId):
 		# measurement = Measurements(value=0,deviceId=device.id,paid=True)
 		# db.session.add(measurement)
 		db.session.commit()
-		if(device.fullAmount>device.monthlyTresholdAmount):
+		if(device.fullAmount>=device.monthlyTresholdAmount):
 			permission = "deny"
 		else:
 			permission = "accept"
@@ -177,6 +177,33 @@ def card_pay(cardId):
 		return jsonify({
 			"response":"Wrong card Id"
 			})
+
+command = {"command":''}
+@app.route("/command/<pin>/<state>")
+def command(pin,state):
+	global command
+	command = {"command":str(pin)+":"+str(state)+":"}
+	return redirect("/control")
+
+@app.route("/checkCommand")
+def checkCommand():
+	global command
+	return command
+
+@app.route("/tables")
+def tables():
+	user = User.query.get(1)
+	device = Devices.query.get(1)
+	measurements = Measurements.query.filter_by(deviceId=device.id).all()
+	# measurements = Measurements.query.filter_by(deviceId=device.id)\
+	# .filter(date>=user.lastTagRegTime).all()
+	
+	return render_template("tables.html",measurements=measurements,
+		device=device)
+
+@app.route("/control")
+def control():
+	return render_template("control.html")
 
 # #### auth and login routes ####
 from flask_login import UserMixin

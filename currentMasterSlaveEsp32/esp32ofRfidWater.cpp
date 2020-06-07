@@ -10,7 +10,7 @@ unsigned long timerDelay = 10000;
 String serverUrl = "192.168.43.69:5100";
 String apiKey = "fw3445g46423527hef2";
 
-int value = 456;
+int value;
 
 String payload;
 
@@ -18,7 +18,30 @@ String stream;
 String action;
 String val;
 
+int stove1 = 34;
+int stove2 = 35;
+int extractorFan = 32;
+int waterPin = 33;
+int pin25 = 25;
+int pin26 = 26;
+int pin27 = 27;
+int pin14 = 14;
+int pin12 = 12;
+int pin13 = 13;
+
 void setup() {
+
+  pinMode(stove1,OUTPUT);
+  pinMode(stove2,OUTPUT);
+  pinMode(extractorFan,OUTPUT);
+  pinMode(waterPin,OUTPUT);
+  pinMode(pin25,OUTPUT);
+  pinMode(pin26,OUTPUT);
+  pinMode(pin27,OUTPUT);
+  pinMode(pin14,OUTPUT);
+  pinMode(pin12,OUTPUT);
+  pinMode(pin13,OUTPUT);
+
   Serial.begin(115200);
   WiFi.begin(ssid, password);
   Serial.println("Connecting");
@@ -53,7 +76,6 @@ void loop() {
 
         sendRequest("http://"+serverUrl+"/measurement/"+apiKey+"/",val);
       }
-
     }
     Serial.println(stream);
     stream="";
@@ -115,6 +137,12 @@ void sendRequest(String path, String sendingData){
 
     if(response=="got the card"){
       Serial.println("It's working, OKAY");
+    }
+    String command = root["command"].as<String>();
+    if(command>0){
+      action = getStringPartByNr(command,':',0);
+      val = getStringPartByNr(command,':',1);
+      digitalWrite(action,toInt(val));
     }
   }
   else {

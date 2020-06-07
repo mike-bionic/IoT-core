@@ -25,6 +25,8 @@
     <!-- bootstrap-daterangepicker -->
     <link href="/static/bootstrap-daterangepicker/daterangepicker.css" rel="stylesheet">
     <link href="/static/css/custom.min.css" rel="stylesheet">
+    <link href="/static/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+
   </head>
 
   <body class="nav-md">
@@ -51,16 +53,20 @@
               <div class="menu_section">
                 <h3>General</h3>
                 <ul class="nav side-menu">
-                  <li><a href="/settings"><i class="fa fa-home"></i> Öý we sazlamalar <span class="fa fa-chevron-down"></span></a></li>
-                  
-                  <li><a><i class="fa fa-table"></i> Tables <span class="fa fa-chevron-down"></span></a>
+                  <li><a><i class="fa fa-home"></i>Öý<span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                      <li><a href="/settings">Sazlamalar</a></li>
+                      <li><a href="/control">Dolandyrmak</a></li>
+                    </ul>
+                  </li>                  
+                  <li><a><i class="fa fa-table"></i> Tablisalar <span class="fa fa-chevron-down"></span></a>
                     <ul class="nav child_menu">
                       <li><a href="/tables">Tables</a></li>
                     </ul>
                   </li>
-                  <li><a><i class="fa fa-bar-chart-o"></i> Charts<span class="fa fa-chevron-down"></span></a>
+                  <li><a><i class="fa fa-bar-chart-o"></i> Grafikler <span class="fa fa-chevron-down"></span></a>
                     <ul class="nav child_menu">
-                      <li><a href="/chart">Chart JS</a></li>
+                      <li><a href="/chart">Grafik</a></li>
                     </ul>
                   </li>
                 </ul>
