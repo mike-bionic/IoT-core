@@ -2,6 +2,7 @@ from flask import Flask,render_template,url_for,redirect,jsonify,request
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+import requests
 
 from datetime import date,datetime,time
 
@@ -9,6 +10,8 @@ app = Flask (__name__)
 
 app.config['SECRET_KEY'] = "nj92uf923fbb02ubfuvb492bfv2p42"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///meterData.db'
+
+esp_url = "http://192.168.1.233"
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -183,6 +186,7 @@ command = {"command":''}
 def command(pin,state):
 	global command
 	command = {"command":str(pin)+":"+str(state)+":"}
+	r = requests.get("{}/{}/{}".format(esp_url,pin,state))
 	return redirect("/control")
 
 @app.route("/checkCommand")
