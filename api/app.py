@@ -1,231 +1,132 @@
-from flask import Flask,render_template,url_for,redirect,jsonify,request
-from flask_login import login_user, current_user, logout_user, login_required
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-import requests
-
-from datetime import date,datetime,time
+from flask import (
+	Flask,
+	render_template,
+	url_for,
+	flash,
+	redirect,
+	request,
+	Response,
+	jsonify,
+	make_response)
+import time,serial,requests
 
 app = Flask (__name__)
 
-app.config['SECRET_KEY'] = "nj92uf923fbb02ubfuvb492bfv2p42"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///meterData.db'
 
-esp_url = "http://192.168.1.233"
+arduinoSerialPort = '/dev/ttyACM0'
 
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-
-login_manager.login_view = 'main'
-login_manager.login_message = 'Ulgama giriň!'
-login_manager.login_message_category = 'info'
-
-
-### Devices models ###
-class Devices(db.Model):
-	id = db.Column(db.Integer,primary_key=True)
-	device_name = db.Column(db.String(100),nullable=False)
-	measurements = db.relationship('Measurements',backref='devices',lazy=True)
-	user = db.relationship('User',backref='devices',lazy=True)
-	apiKey = db.Column(db.String(500))
-	paid = db.Column(db.Boolean,nullable=False,default=False)
-	fullAmount = db.Column(db.Integer)
-	monthlyFreeWaterAmount = db.Column(db.Integer,nullable=False,default=500)
-	monthlyTresholdAmount = db.Column(db.Integer,nullable=False,default=3000)
-
-class Measurements(db.Model):
-	id = db.Column(db.Integer,primary_key=True)
-	value = db.Column(db.String(100),nullable=False)
-	date = db.Column(db.DateTime,nullable=False,default=datetime.now())
-	deviceId = db.Column(db.Integer,db.ForeignKey("devices.id"))
-
-###  end of Devices models ###
-
-@app.route("/measurement/<key>/<int:val>")
-def measurement(key,val):
-	try:
-		device = Devices.query.filter_by(apiKey=key).first()
-		measurement = Measurements(value=val,deviceId=device.id)
-		db.session.add(measurement)
-		device.fullAmount += measurement.value
-		db.session.commit()
-
-		if(device.fullAmount>=device.monthlyTresholdAmount):
-			permission = "deny"
-		else:
-			permission = "accept"
-		return jsonify({
-			"response":"OK",
-			"permission":permission
-			})
-	except:
-		return jsonify({"response":"error"})
-
-@app.route("/")
-@app.route("/chart")
-@app.route("/main")
-def home():
-	device = Devices.query.get(1)
-	dailyMeasured = []
-	measurements = Measurements.query.filter_by(deviceId=device.id).all()
-	
-# there's an error here, will check it later
-
-	# for measurement in measurements:
-	# 	print(measurement.date)
-	# 	if len(dailyMeasured)==0:
-	# 		dailyMeasured.append(measurement)
-	# 	else:
-	# 		for days in dailyMeasured:
-	# 			if (days.date.strftime("%d") != measurement.date.strftime("%d")):
-	# 				dailyMeasured.append(measurement)
-	# 				print(measurement.value)
-	# 				print("appended")
-	# 			elif (days.date.strftime("%d") == measurement.date.strftime("%d")):
-	# 				print(days.value)
-	# 				print(measurement.value)
-	# 				days.value=int(days.value)+int(measurement.value)
-	# 				print("value Up")
-
-	# print("_________________-")
-	# print(dailyMeasured)
-	# for days in dailyMeasured:
-	# 	print(days.value)
-####################
-
-	commonUsedAmount=0
-	pastMeasurement=0
-	monthlyFreeWaterAmount = device.monthlyFreeWaterAmount
-	monthlyTresholdAmount = device.monthlyTresholdAmount
-	for measurement in measurements:
-		commonUsedAmount += int(measurement.value)-pastMeasurement
-		# pastMeasurement = int(measurement.value)
+esp_devices_data = [
+	{
+		"name": "Lights Hall",
+		"ip": "192.168.1.145",
+		"state": 0,
+		"command": "lights_hall",
+		"description": "Turns on/off hall lights"
+	},
+	{
+		"name": "Lights Kitchen",
+		"ip": "192.168.1.121",
+		"state": 0,
+		"command": "lights_kitchen",
+		"description": "Turns on/off kitchen lights"
+	},
+	{
+		"name": "Local test",
+		"ip": "127.0.0.1:5000",
+		"state": 0,
+		"command": "test_local",
+		"description": "Turns on/off Local test"
+	}
+]
 
 
-	# calculates current amount of free if not expired
+@app.route("/<deviceName>/<action>")
+def action(deviceName, action):
+	# example /room1sw/ON
+	task=(deviceName+action)
+	task_encode=task.encode()
+	print(task)
+	ser = serial.Serial(arduinoSerialPort)
+	ser.baudrate = 9600
+	ser.write(task_encode)
+	print(task_encode)
+	time.sleep(1)
+	ser.close()
 
-	if commonUsedAmount<monthlyFreeWaterAmount:
-		usedFreeWaterPercentage = (100*commonUsedAmount)/monthlyFreeWaterAmount
-		nonFreeWaterPercentage = 0
-	else:
-		usedFreeWaterPercentage=100
-
-		nonFreeWaterPercentage = (100*(commonUsedAmount-monthlyFreeWaterAmount))/monthlyTresholdAmount
-
-	if commonUsedAmount<monthlyTresholdAmount:
-		usedCommonWaterPercentage = (100*commonUsedAmount)/monthlyTresholdAmount
-	else:
-		usedCommonWaterPercentage = 100
-
-	return render_template("main.html",
-		device=device, measurements=measurements,
-		monthlyFreeWaterAmount=monthlyFreeWaterAmount,
-		monthlyTresholdAmount=monthlyTresholdAmount,
-		commonUsedAmount=commonUsedAmount,
-		usedCommonWaterPercentage=usedCommonWaterPercentage,
-		usedFreeWaterPercentage=usedFreeWaterPercentage,
-		nonFreeWaterPercentage=nonFreeWaterPercentage)
-
-#############################
-
-
-
-@app.route("/settings",methods=['GET','POST'])
-# @login_required
-def settings():
-	user = User.query.get(1)
-	device = Devices.query.get(1)
+@app.route("/",methods=['GET','POST'])
+def app_json():
 	if request.method == 'POST':
-		monthlyFreeWaterAmount=request.form.get("monthlyFreeWaterAmount")
-		monthlyTresholdAmount=request.form.get("monthlyTresholdAmount")
+		req = request.get_json()
+		task = req["name"]
+		task_encode=task.encode()
+		ser = serial.Serial(arduinoSerialPort)
+		ser.baudrate = 9600
+		ser.write(task_encode)
+		time.sleep(1)
+		ser.close()
+		response = {"name": task}
+		return make_response(jsonify(response),200)
+
+@app.route("/esp/",methods=['GET','POST'])
+def esp():
+	if request.method == 'POST':
+		req = request.get_json()
+		state = req["state"]
+		command = req["command"]
+		for device in esp_devices_data:
+			if device["command"] == command:
+				try:
+					device["state"] = state
+					r = requests.get('http://{}/control/{}'.format(device["ip"],device["state"]))
+					print (r.text)
+					return make_response(jsonify(device),200)
+				except Exception as ex:
+					return make_response("error, couldn't make a request (no device found)",200)
+		return make_response("error, couldn't make a request (no device found)",200)
+
+@app.route("/esp/checkState/")
+def check_state():
+	return make_response(jsonify(esp_devices_data),200)
+
+
+@app.route("/esp/setState/")
+def setEspState():
+	command = request.args.get('command')
+	state = request.args.get('state')
+
+	for device in esp_devices_data:
+		if device["command"] == command:
+			try:
+				device["state"] = state
+				print(device)
+				return make_response("ok",200)
+			except Exception as ex:
+				return make_response("err",200)
+
+
+# test function
+@app.route("/control/<state>")
+def control_state(state):
+	print(state)
+	return make_response("received state {}".format(state),200)
+
+'''
+curl --header "Content-Type: application/json" \
+	--request POST \
+	--data '{"command":"test_local","state":1}' \
+	http://127.0.0.1:5000/esp/
+'''
+
+# optionalfunchtion for app init
+def refresh_esp_states():
+	for device in esp_devices_data:
 		try:
-			device.monthlyFreeWaterAmount=monthlyFreeWaterAmount
-			device.monthlyTresholdAmount=monthlyTresholdAmount
-			db.session.commit()
-		except:
-			print('error')
-	return render_template("settings.html",user=user,device=device)
+			r = requests.get('http://{}/control/{}'.format(device["ip"],device["state"]))
+		except Exception as ex:
+			print(ex)
+	return "done"
+# refresh_esp_states()
 
-@app.route("/card_register",methods=['POST'])
-def card_register():
-	user = User.query.get(1)
-	personalTag = request.form.get('personalTag')
-	print(personalTag)
-	user.personalTag = personalTag
-	user.lastTagRegTime = datetime.now()
-	db.session.commit()
-	return redirect("/")
-
-
-@app.route("/card/pay/<cardId>")
-def card_pay(cardId):
-	try:
-		user = User.query.filter_by(personalTag=cardId).first()
-		print(user.username)
-		device = Devices.query.filter_by(id=user.deviceId).first()
-		device.fullAmount = 0
-		user.lastTagRegTime=(datetime.now())
-		# measurement = Measurements(value=0,deviceId=device.id,paid=True)
-		# db.session.add(measurement)
-		db.session.commit()
-		if(device.fullAmount>=device.monthlyTresholdAmount):
-			permission = "deny"
-		else:
-			permission = "accept"
-		return jsonify({
-			"response":"OK",
-			"permission":permission
-			})
-	except:
-		return jsonify({
-			"response":"Wrong card Id"
-			})
-
-command = {"command":''}
-@app.route("/command/<pin>/<state>")
-def command(pin,state):
-	global command
-	command = {"command":str(pin)+":"+str(state)+":"}
-	r = requests.get("{}/{}/{}".format(esp_url,pin,state))
-	return redirect("/control")
-
-@app.route("/checkCommand")
-def checkCommand():
-	global command
-	return command
-
-@app.route("/tables")
-def tables():
-	user = User.query.get(1)
-	device = Devices.query.get(1)
-	measurements = Measurements.query.filter_by(deviceId=device.id).all()
-	# measurements = Measurements.query.filter_by(deviceId=device.id)\
-	# .filter(date>=user.lastTagRegTime).all()
-	
-	return render_template("tables.html",measurements=measurements,
-		device=device)
-
-@app.route("/control")
-def control():
-	return render_template("control.html")
-
-# #### auth and login routes ####
-from flask_login import UserMixin
-
-@login_manager.user_loader
-def load_user(id):
-	return User.query.get(int(id))
-
-class User(db.Model, UserMixin):
-	id = db.Column(db.Integer,primary_key=True)
-	username = db.Column(db.String(50),unique=True,nullable =False)
-	full_name = db.Column(db.String(100))
-	password = db.Column(db.String(100), nullable=False)
-	personalTag = db.Column(db.String(120))
-	lastTagRegTime = db.Column(db.DateTime)
-	deviceId = db.Column(db.Integer,db.ForeignKey("devices.id")) 
-	def __repr__ (self):
-		return f"User('{self.username}')"
 
 if __name__ == "__main__":
-	app.run(host="0.0.0.0" , port=5100 , debug=True)
+	app.run(host="0.0.0.0" , port=5000 , debug=True)

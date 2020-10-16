@@ -4,3 +4,4 @@ sqlalchemy
 flask-wtf
 wtforms
 flask-login
+requests
